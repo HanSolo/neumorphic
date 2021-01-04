@@ -16,6 +16,7 @@
 
 package eu.hansolo.fx.neumorphic;
 
+import eu.hansolo.fx.neumorphic.tools.ButtonShape;
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
@@ -48,7 +49,7 @@ import javafx.scene.text.TextAlignment;
 
 
 @DefaultProperty("children")
-public class NRadioButton extends Region implements Toggle {
+public class NRadioButton extends NToggleButton {
     private static final double                      PREFERRED_WIDTH  = 120;
     private static final double                      PREFERRED_HEIGHT = 24;
     private static final double                      MINIMUM_WIDTH    = 10;
@@ -63,16 +64,8 @@ public class NRadioButton extends Region implements Toggle {
     private              Canvas                      canvas;
     private              GraphicsContext             ctx;
     private              Label                       label;
-    private              ObjectProperty<ToggleGroup> toggleGroup;
-    private              Color                       _backgroundColor;
-    private              ObjectProperty<Color>       backgroundColor;
-    private              Color                       _textColor;
-    private              ObjectProperty<Color>       textColor;
-    private              Color                       _selectedColor;
-    private              ObjectProperty<Color>       selectedColor;
     private              Color                       brightShadowColor;
     private              Color                       darkShadowColor;
-    private              BooleanProperty             selected;
     private              double                      cornerRadius;
     private              double                      shadowRadius;
     private              double                      shadowOffset;
@@ -88,48 +81,15 @@ public class NRadioButton extends Region implements Toggle {
     }
     public NRadioButton(final String text) {
         label             = new Label(text);
-        toggleGroup       = new ObjectPropertyBase<>(null) {
-            private ToggleGroup oldToggleGroup;
-            @Override protected void invalidated() {
-                final ToggleGroup toggleGroup = get();
-                if (null != toggleGroup && !toggleGroup.getToggles().contains(NRadioButton.this)) {
-                    if (oldToggleGroup != null) { oldToggleGroup.getToggles().remove(NRadioButton.this); }
-                    toggleGroup.getToggles().add(NRadioButton.this);
-                } else if (null == toggleGroup) {
-                    oldToggleGroup.getToggles().remove(NRadioButton.this);
-                }
-                oldToggleGroup = toggleGroup;
-            }
-            @Override public Object getBean() { return NRadioButton.this; }
-            @Override public String getName() { return "toggleGroup"; }
-        };
-        _backgroundColor  = Color.web("#e2e6e8");
-        _textColor        = Color.web("#6c737c");
-        _selectedColor    = Color.web("#236dee");
-        brightShadowColor = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, 1.1), 0.5);
-        darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, 0.9), 0.5);
-        selected          = new BooleanPropertyBase(false) {
-            @Override protected void invalidated() {
-                if (null != getToggleGroup()) {
-                    if (get()) {
-                        getToggleGroup().selectToggle(NRadioButton.this);
-                    } else if (getToggleGroup().getSelectedToggle() == NRadioButton.this) {
-                        getToggleGroup().selectToggle(null);
-                    }
-                }
-                fireEvent(new ActionEvent(ActionEvent.ACTION, NRadioButton.this));
-                layoutChildren();
-            }
-            @Override public Object getBean() { return NRadioButton.this; }
-            @Override public String getName() { return "selected"; }
-        };
+        brightShadowColor = Helper.getColorWithOpacity(Helper.derive(getBackgroundColor(), 1.1), 0.5);
+        darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(getBackgroundColor(), 0.9), 0.5);
         cornerRadius      = 5;
         shadowRadius      = 6;
         shadowOffset      = 2;
         glowRadius        = 10;
         outerShadow       = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
         outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
-        glow              = new DropShadow(BlurType.TWO_PASS_BOX, _selectedColor, glowRadius, 0.5, 0, 0);
+        glow              = new DropShadow(BlurType.TWO_PASS_BOX, getSelectedColor(), glowRadius, 0.5, 0, 0);
         innerShadow       = new InnerShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
         innerShadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
         initGraphics();
@@ -166,16 +126,19 @@ public class NRadioButton extends Region implements Toggle {
     private void registerListeners() {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
-        canvas.setOnMousePressed(e -> selected.set(selected.get() ? false : true));
+        canvas.setOnMousePressed(e -> fire());
+        backgroundColorProperty().addListener(o -> {
+            Color   backgroundColor = getBackgroundColor();
+            boolean isBright        = Helper.isBright(backgroundColor);
+            brightShadowColor = Helper.getColorWithOpacity(Helper.derive(backgroundColor, isBright ? 1.1 : 1.3), isBright ? 0.5 : 1.0);
+            darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(backgroundColor, isBright ? 0.9 : 0.7), isBright ? 0.5 : 1.0);
+        });
+        textColorProperty().addListener(o -> label.setTextFill(getTextColor()));
+        fontProperty().addListener(o -> label.setFont(getFont()));
     }
 
 
     // ******************** Methods *******************************************
-    @Override public void layoutChildren() {
-        super.layoutChildren();
-        resize();
-    }
-
     @Override protected double computeMinWidth(final double height) { return MINIMUM_WIDTH; }
     @Override protected double computeMinHeight(final double width) { return MINIMUM_HEIGHT; }
     @Override protected double computePrefWidth(final double height) { return super.computePrefWidth(height); }
@@ -189,101 +152,22 @@ public class NRadioButton extends Region implements Toggle {
     public void setText(final String text) { label.setText(text); }
     public StringProperty textProperty() { return label.textProperty(); }
 
-    public Color getBackgroundColor() { return null == backgroundColor ? _backgroundColor : backgroundColor.get(); }
-    public void setBackgroundColor(final Color backgroundColor) {
-        if (null == this.backgroundColor) {
-            boolean isBright  = Helper.isBright(backgroundColor);
-            _backgroundColor  = backgroundColor;
-            brightShadowColor = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, isBright ? 1.1 : 1.3), isBright ? 0.5 : 1.0);
-            darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, isBright ? 0.9 : 0.7), isBright ? 0.5 : 1.0);
-            resize();
-        } else {
-            this.backgroundColor.set(backgroundColor);
+    @Override public void fire() {
+        if (null == getToggleGroup() || !isSelected()) {
+            super.fire();
         }
     }
-    public ObjectProperty<Color> backgroundColorProperty() {
-        if (null == backgroundColor) {
-            backgroundColor = new ObjectPropertyBase<>(_backgroundColor) {
-                @Override protected void invalidated() {
-                    boolean isBright  = Helper.isBright(get());
-                    brightShadowColor = Helper.getColorWithOpacity(Helper.derive(get(), isBright ? 1.1 : 1.3), isBright ? 0.5 : 1.0);
-                    darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(get(), isBright ? 0.9 : 0.7), isBright ? 0.5 : 1.0);
-                    resize();
-                }
-                @Override public Object getBean() { return NRadioButton.this; }
-                @Override public String getName() { return "backgroundColor"; }
-            };
-            _backgroundColor = null;
-        }
-        return backgroundColor;
+
+
+    // ******************** Layout ********************************************
+    @Override public void layoutChildren() {
+        super.layoutChildren();
+        resize();
     }
 
-    public Color getTextColor() { return null == textColor ? _textColor : textColor.get(); }
-    public void setTextColor(final Color textColor) {
-        if (null == this.textColor) {
-            _textColor = textColor;
-            label.setTextFill(_textColor);
-            redraw();
-        } else {
-            this.textColor.set(textColor);
-        }
-    }
-    public ObjectProperty<Color> textColorProperty() {
-        if (null == textColor) {
-            textColor = new ObjectPropertyBase<>(_textColor) {
-                @Override protected void invalidated() {
-                    label.setTextFill(get());
-                    redraw();
-                }
-                @Override public Object getBean() { return NRadioButton.this; }
-                @Override public String getName() { return "textColor"; }
-            };
-            _textColor = null;
-        }
-        return textColor;
-    }
-
-    public Color getSelectedColor() { return null == selectedColor ? _selectedColor : selectedColor.get(); }
-    public void setSelectedColor(final Color selectedColor) {
-        if (null == this.selectedColor) {
-            _selectedColor = Helper.getColorWithOpacity(selectedColor, 0.6);
-            redraw();
-        } else {
-            this.selectedColor.set(selectedColor);
-        }
-    }
-    public ObjectProperty<Color> selectedColorProperty() {
-        if (null == selectedColor) {
-            selectedColor = new ObjectPropertyBase<>(_selectedColor) {
-                @Override protected void invalidated() {
-                    set(Helper.getColorWithOpacity(get(), 0.6));
-                    redraw();
-                }
-                @Override public Object getBean() { return NRadioButton.this; }
-                @Override public String getName() { return "selectedColor"; }
-            };
-            _selectedColor = null;
-        }
-        return selectedColor;
-    }
-
-    public Font getFont() { return label.getFont(); }
-    public void setFont(final Font font) { label.setFont(font); }
-    public ObjectProperty<Font> fontProperty() { return label.fontProperty(); }
-
-    public boolean isSelected() { return selected.get(); }
-    public void setSelected(final boolean selected) { this.selected.set(selected); }
-    public BooleanProperty selectedProperty() { return selected; }
-
-    public final ToggleGroup getToggleGroup() { return null == toggleGroup ? null : toggleGroup.get(); }
-    public final void setToggleGroup(final ToggleGroup toggleGroup) { this.toggleGroup.set(toggleGroup); }
-    public final ObjectProperty<ToggleGroup> toggleGroupProperty() { return toggleGroup; }
-
-
-    // ******************** Resizing ******************************************
-    private void resize() {
+    @Override protected void resize() {
         width  = getWidth() - getInsets().getLeft() - getInsets().getRight();
-        height = (getHeight() - getInsets().getTop() - getInsets().getBottom());
+        height = Helper.clamp(getFont().getSize() * 2, Double.MAX_VALUE, getHeight() - getInsets().getTop() - getInsets().getBottom());
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
@@ -291,14 +175,10 @@ public class NRadioButton extends Region implements Toggle {
             pane.setMaxSize(width, height);
             pane.setPrefSize(width, height);
 
-            size = Helper.clamp(0, label.getHeight(), height);
-
             canvas.setWidth(size);
             canvas.setHeight(size);
 
-            cornerRadius = size;
-
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
+            cornerRadius = Helper.clamp(1, Double.MAX_VALUE, size);
 
             shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
             shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
@@ -317,20 +197,22 @@ public class NRadioButton extends Region implements Toggle {
         }
     }
 
-    private void redraw() {
+    @Override protected void redraw() {
         ctx.clearRect(0, 0, size, size);
-        boolean isSelected     = selected.get();
+        boolean isSelected     = isSelected();
         double  shadowRadiusX2 = 2 * shadowRadius;
+        double  shadowRadiusX3 = 3 * shadowRadius;
+        double  shadowRadiusX4 = 4 * shadowRadius;
         ctx.save();
         ctx.setEffect(isSelected ? innerShadow : outerShadow);
         ctx.setFill(getBackgroundColor());
-        ctx.fillOval(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2);
+        ctx.fillOval(shadowRadiusX2, shadowRadiusX2, size - shadowRadiusX4, size - shadowRadiusX4);
         ctx.restore();
         if (isSelected) {
             ctx.save();
             ctx.setEffect(glow);
             ctx.setFill(getSelectedColor());
-            ctx.fillOval(shadowRadiusX2, shadowRadiusX2, size - 2 * shadowRadiusX2, size - 2 * shadowRadiusX2);
+            ctx.fillOval(shadowRadiusX3, shadowRadiusX3, size - shadowRadiusX3 * 2, size - shadowRadiusX3 * 2);
             ctx.restore();
         }
     }

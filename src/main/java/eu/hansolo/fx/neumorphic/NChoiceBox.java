@@ -18,20 +18,19 @@ package eu.hansolo.fx.neumorphic;
 
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.BooleanPropertyBase;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
-import javafx.beans.property.StringProperty;
-import javafx.beans.property.StringPropertyBase;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Control;
-import javafx.scene.control.TextField;
+import javafx.scene.control.Label;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.InnerShadow;
@@ -41,9 +40,12 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 @DefaultProperty("children")
-public class NTextField extends Region {
+public class NChoiceBox<T> extends Region {
     private static final double                PREFERRED_WIDTH  = 120;
     private static final double                PREFERRED_HEIGHT = 24;
     private static final double                MINIMUM_WIDTH    = 10;
@@ -54,16 +56,16 @@ public class NTextField extends Region {
     private              double                size;
     private              double                width;
     private              double                height;
-    private              double                textFieldWidth;
-    private              double                textFieldHeight;
-    private              TextField             textField;
+    private              double                choiceBoxWidth;
+    private              double                choiceBoxHeight;
+    private              ChoiceBox<T>          choiceBox;
     private              Pane                  pane;
     private              Canvas                canvas;
     private              GraphicsContext       ctx;
-    private              String                _text;
+    private              Label                 label;
+    private              List<T>               items;
     private              Color                 _backgroundColor;
     private              ObjectProperty<Color> backgroundColor;
-    private              Color                 _textBackgroundColor;
     private              Color                 _textColor;
     private              ObjectProperty<Color> textColor;
     private              Color                 _selectedColor;
@@ -76,16 +78,16 @@ public class NTextField extends Region {
     private              double                shadowOffset;
     private              DropShadow            outerShadow;
     private              InnerShadow           innerShadow;
+    private              BooleanBinding        showing;
 
 
     // ******************** Constructors **************************************
-    public NTextField() {
-        this("");
+    public NChoiceBox() {
+        this(new ArrayList<>());
     }
-    public NTextField(final String text) {
-        _text                = text;
+    public NChoiceBox(final List<T> items) {
+        this.items           = items;
         _backgroundColor     = Color.web("#e2e6e8");
-        _textBackgroundColor = Helper.derive(_backgroundColor, Helper.isBright(_backgroundColor) ? 0.99 : 1.2);
         _textColor           = Color.web("#6c737c");
         _selectedColor       = Color.web("#236dee");
         brightShadowColor    = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, 1.1), 0.5);
@@ -119,12 +121,9 @@ public class NTextField extends Region {
         ctx.setTextAlign(TextAlignment.CENTER);
         ctx.setTextBaseline(VPos.CENTER);
 
-        textField = new TextField(_text);
-        textField.setFont(Font.font(10));
-        textField.setStyle("-fx-highlight-fill: #236dee;");
-        textField.setStyle("-fx-text-fill: " + Helper.colorToCss(_textColor));
+        choiceBox = new ChoiceBox(FXCollections.observableList(items));
 
-        pane = new Pane(canvas, textField);
+        pane = new Pane(canvas, choiceBox);
 
         getChildren().setAll(pane);
     }
@@ -132,6 +131,39 @@ public class NTextField extends Region {
     private void registerListeners() {
         widthProperty().addListener(o -> resize());
         heightProperty().addListener(o -> resize());
+        if (null != getScene()) {
+            setupBinding();
+        } else {
+            sceneProperty().addListener((o1, ov1, nv1) -> {
+                if (null == nv1) { return; }
+                if (null != getScene().getWindow()) {
+                    setupBinding();
+                } else {
+                    sceneProperty().get().windowProperty().addListener((o2, ov2, nv2) -> {
+                        if (null == nv2) { return; }
+                        setupBinding();
+                    });
+                }
+            });
+        }
+    }
+
+    private void setupBinding() {
+        showing = Bindings.createBooleanBinding(() -> {
+            if (getScene() != null && getScene().getWindow() != null) {
+                return getScene().getWindow().isShowing();
+            } else {
+                return false;
+            }
+        }, sceneProperty(), getScene().windowProperty(), getScene().getWindow().showingProperty());
+
+        showing.addListener(o -> {
+            if (showing.get()) {
+                label = (Label) choiceBox.lookup(".label");
+                label.setTextFill(getTextColor());
+                label.setFont(getFont());
+            }
+        });
     }
 
 
@@ -145,16 +177,11 @@ public class NTextField extends Region {
 
     @Override public ObservableList<Node> getChildren() { return super.getChildren(); }
 
-    public String getText() { return textField.getText(); }
-    public void setText(final String text) { textField.setText(text); }
-    public StringProperty textProperty() { return textField.textProperty(); }
-
     public Color getBackgroundColor() { return null == backgroundColor ? _backgroundColor : backgroundColor.get(); }
     public void setBackgroundColor(final Color backgroundColor) {
         if (null == this.backgroundColor) {
             boolean isBright     = Helper.isBright(backgroundColor);
             _backgroundColor     = backgroundColor;
-            _textBackgroundColor = Helper.derive(_backgroundColor, Helper.isBright(_backgroundColor) ? 0.99 : 1.2);
             brightShadowColor    = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, isBright ? 1.1 : 1.3), isBright ? 0.5 : 1.0);
             darkShadowColor      = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, isBright ? 0.9 : 0.7), isBright ? 0.5 : 1.0);
             resize();
@@ -167,12 +194,11 @@ public class NTextField extends Region {
             backgroundColor = new ObjectPropertyBase<>(_backgroundColor) {
                 @Override protected void invalidated() {
                     boolean isBright     = Helper.isBright(get());
-                    _textBackgroundColor = Helper.derive(get(), isBright ? 0.99 : 1.2);
                     brightShadowColor    = Helper.getColorWithOpacity(Helper.derive(get(), isBright ? 1.1 : 1.3), isBright ? 0.5 : 1.0);
                     darkShadowColor      = Helper.getColorWithOpacity(Helper.derive(get(), isBright ? 0.9 : 0.7), isBright ? 0.5 : 1.0);
                     resize();
                 }
-                @Override public Object getBean() { return NTextField.this; }
+                @Override public Object getBean() { return NChoiceBox.this; }
                 @Override public String getName() { return "backgroundColor"; }
             };
             _backgroundColor = null;
@@ -184,7 +210,7 @@ public class NTextField extends Region {
     public void setTextColor(final Color textColor) {
         if (null == this.textColor) {
             _textColor = textColor;
-            textField.setStyle("-fx-text-fill: " + Helper.colorToCss(_textColor));
+            if (null != label) { label.setTextFill(_textColor); }
             redraw();
         } else {
             this.textColor.set(textColor);
@@ -194,10 +220,10 @@ public class NTextField extends Region {
         if (null == textColor) {
             textColor = new ObjectPropertyBase<>(_textColor) {
                 @Override protected void invalidated() {
-                    textField.setStyle("-fx-text-inner-color: " + Helper.colorToCss(get()));
+                    choiceBox.setStyle("-fx-text-inner-color: " + Helper.colorToCss(get()));
                     redraw();
                 }
-                @Override public Object getBean() { return NTextField.this; }
+                @Override public Object getBean() { return NChoiceBox.this; }
                 @Override public String getName() { return "textColor"; }
             };
             _textColor = null;
@@ -209,7 +235,7 @@ public class NTextField extends Region {
     public void setSelectedColor(final Color selectedColor) {
         if (null == this.selectedColor) {
             _selectedColor = selectedColor;
-            textField.setStyle("-fx-highlight-fill: " + Helper.colorToCss(_selectedColor));
+            choiceBox.setStyle("-fx-highlight-fill: " + Helper.colorToCss(_selectedColor));
             redraw();
         } else {
             this.selectedColor.set(selectedColor);
@@ -219,10 +245,10 @@ public class NTextField extends Region {
         if (null == selectedColor) {
             selectedColor = new ObjectPropertyBase<>(_selectedColor) {
                 @Override protected void invalidated() {
-                    textField.setStyle("-fx-highlight-fill: " + Helper.colorToCss(get()));
+                    choiceBox.setStyle("-fx-highlight-fill: " + Helper.colorToCss(get()));
                     redraw();
                 }
-                @Override public Object getBean() { return NTextField.this; }
+                @Override public Object getBean() { return NChoiceBox.this; }
                 @Override public String getName() { return "selectedColor"; }
             };
             _selectedColor = null;
@@ -230,9 +256,9 @@ public class NTextField extends Region {
         return selectedColor;
     }
 
-    public Font getFont() { return textField.getFont(); }
-    public void setFont(final Font font) { textField.setFont(font); }
-    public ObjectProperty<Font> fontProperty() { return textField.fontProperty(); }
+    public Font getFont() { return label.getFont(); }
+    public void setFont(final Font font) { label.setFont(font); }
+    public ObjectProperty<Font> fontProperty() { return label.fontProperty(); }
 
     public ContentDisplay getContentDisplay() { return contentDisplay; }
     public void setContentDisplay(final ContentDisplay contentDisplay) {
@@ -240,10 +266,10 @@ public class NTextField extends Region {
         resize();
     }
 
-    public TextField getEditor() { return textField; }
+    public ChoiceBox<T> getEditor() { return choiceBox; }
 
     @Override public String getUserAgentStylesheet() {
-        if (null == userAgentStyleSheet) { userAgentStyleSheet = getClass().getResource("ntextfield.css").toExternalForm(); }
+        if (null == userAgentStyleSheet) { userAgentStyleSheet = getClass().getResource("nchoicebox.css").toExternalForm(); }
         return userAgentStyleSheet;
     }
 
@@ -252,11 +278,11 @@ public class NTextField extends Region {
     @Override public void layoutChildren() {
         super.layoutChildren();
 
-        textFieldWidth  = textField.getLayoutBounds().getWidth();
-        textFieldHeight = textField.getLayoutBounds().getHeight();
+        choiceBoxWidth  = choiceBox.getLayoutBounds().getWidth();
+        choiceBoxHeight = choiceBox.getLayoutBounds().getHeight();
         double w  = width;
         double h  = height;
-        textField.relocate((w - textFieldWidth) * 0.5, (h - textFieldHeight) * 0.5);
+        choiceBox.relocate((w - choiceBoxWidth) * 0.5, (h - choiceBoxHeight) * 0.5);
         resize();
     }
 
@@ -266,15 +292,15 @@ public class NTextField extends Region {
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
-            pane.setMinSize(width, textFieldHeight);
-            pane.setMaxSize(width, textFieldHeight);
-            pane.setPrefSize(width, textFieldHeight);
+            pane.setMinSize(width, choiceBoxHeight);
+            pane.setMaxSize(width, choiceBoxHeight);
+            pane.setPrefSize(width, choiceBoxHeight);
             pane.relocate((getWidth() - width) * 0.5, (getHeight() - height) * 0.5);
 
             canvas.setWidth(width);
-            canvas.setHeight(textFieldHeight);
+            canvas.setHeight(choiceBoxHeight);
 
-            textField.setPrefSize(width - size / 2.5, height);
+            choiceBox.setPrefSize(width - size / 2.5, height);
 
             cornerRadius = size / 1.25;
             cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
@@ -296,8 +322,8 @@ public class NTextField extends Region {
         ctx.clearRect(0, 0, width, height);
         double  shadowRadiusX2 = 2 * shadowRadius;
         ctx.save();
-        ctx.setEffect(innerShadow);
-        ctx.setFill(_textBackgroundColor);
+        ctx.setEffect(outerShadow);
+        ctx.setFill(getBackgroundColor());
         ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
         ctx.restore();
     }

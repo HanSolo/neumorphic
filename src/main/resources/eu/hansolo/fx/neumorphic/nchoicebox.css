@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) 2021 by Gerrit Grunwald
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.choice-box {
+    -fx-background-color : transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3px, 3px, 2px, 1px;
+    -fx-padding          : 0.333333em 0.666667em 0.333333em 0.666667em; /* 4 8 4 8 */
+    -fx-text-fill        : -fx-text-base-color;
+    -fx-alignment        : CENTER;
+    -fx-content-display  : LEFT;
+}
+.choice-box:hover {
+    -fx-color: -fx-hover-base;
+}
+.choice-box:showing {
+    -fx-color: -fx-pressed-base;
+}
+.choice-box:focused {
+    -fx-background-color : transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3, 2, 1, 4, 1;
+}
+
+.choice-box {
+    -fx-padding: 0;
+}
+
+.choice-box > .label {
+    -fx-padding  : 0.333333em 0.666667em 0.333333em 0.666667em; /* 4 8 4 8 */
+    -fx-text-fill: -fx-text-base-color;
+}
+
+.choice-box > .open-button {
+    -fx-padding: 0.5em 0.667em 0.5em 0.0em; /* 6 8 6 0 */
+}
+
+.choice-box > .open-button > .arrow {
+    -fx-background-color : -fx-mark-highlight-color, -fx-mark-color;
+    -fx-background-insets: 1 0 -1 0, 0;
+    -fx-padding          : 0.166667em 0.333333em 0.166667em 0.333333em;
+    -fx-shape            : "M 0 0 h 7 l -3.5 4 z";
+}
+
+.choice-box > .context-menu {
+    -fx-background-radius: 6, 5, 4;
+}

@@ -142,11 +142,6 @@ public class NCheckBox extends Region {
 
 
     // ******************** Methods *******************************************
-    @Override public void layoutChildren() {
-        super.layoutChildren();
-        resize();
-    }
-
     @Override protected double computeMinWidth(final double height) { return MINIMUM_WIDTH; }
     @Override protected double computeMinHeight(final double width) { return MINIMUM_HEIGHT; }
     @Override protected double computePrefWidth(final double height) { return super.computePrefWidth(height); }
@@ -247,10 +242,15 @@ public class NCheckBox extends Region {
     public BooleanProperty selectedProperty() { return selected; }
 
 
-    // ******************** Resizing ******************************************
-    private void resize() {
+    // ******************** Layout ********************************************
+    @Override public void layoutChildren() {
+        super.layoutChildren();
+        resize();
+    }
+
+    protected void resize() {
         width  = getWidth() - getInsets().getLeft() - getInsets().getRight();
-        height = (getHeight() - getInsets().getTop() - getInsets().getBottom());
+        height = Helper.clamp(getFont().getSize() * 2, Double.MAX_VALUE, getHeight() - getInsets().getTop() - getInsets().getBottom());
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
@@ -284,7 +284,7 @@ public class NCheckBox extends Region {
         }
     }
 
-    private void redraw() {
+    protected void redraw() {
         ctx.clearRect(0, 0, size, size);
         boolean isSelected     = selected.get();
         double  shadowRadiusX2 = 2 * shadowRadius;
