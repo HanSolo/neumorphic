@@ -16,4 +16,8 @@
 
 package eu.hansolo.fx.neumorphic.tools;
 
-public  enum ButtonShape { RECTANGULAR, PILL, CIRCULAR}
+public  enum NShape {
+    RECTANGULAR,
+    PILL,
+    CIRCULAR
+}
