@@ -16,33 +16,20 @@
 
 package eu.hansolo.fx.neumorphic;
 
-import eu.hansolo.fx.neumorphic.tools.ButtonShape;
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.BooleanPropertyBase;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.ObjectPropertyBase;
 import javafx.beans.property.StringProperty;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Label;
-import javafx.scene.control.Toggle;
-import javafx.scene.control.ToggleGroup;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.InnerShadow;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
-import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Region;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.TextAlignment;
@@ -66,7 +53,6 @@ public class NRadioButton extends NToggleButton {
     private              Label                       label;
     private              Color                       brightShadowColor;
     private              Color                       darkShadowColor;
-    private              double                      cornerRadius;
     private              double                      shadowRadius;
     private              double                      shadowOffset;
     private              double                      glowRadius;
@@ -83,7 +69,6 @@ public class NRadioButton extends NToggleButton {
         label             = new Label(text);
         brightShadowColor = Helper.getColorWithOpacity(Helper.derive(getBackgroundColor(), 1.1), 0.5);
         darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(getBackgroundColor(), 0.9), 0.5);
-        cornerRadius      = 5;
         shadowRadius      = 6;
         shadowOffset      = 2;
         glowRadius        = 10;
@@ -178,10 +163,8 @@ public class NRadioButton extends NToggleButton {
             canvas.setWidth(size);
             canvas.setHeight(size);
 
-            cornerRadius = Helper.clamp(1, Double.MAX_VALUE, size);
-
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
@@ -190,7 +173,7 @@ public class NRadioButton extends NToggleButton {
             innerShadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
 
             Color glowColor = Helper.isBright(getBackgroundColor()) ? Helper.getColorWithOpacity(getSelectedColor(), 0.25) : getSelectedColor();
-            glowRadius = Helper.clamp(4, Double.MAX_VALUE, size * 0.2);
+            glowRadius = Helper.clamp(4, 8, size * 0.2);
             glow = new DropShadow(BlurType.TWO_PASS_BOX, glowColor, glowRadius, 0.0, 0, 0);
 
             redraw();
@@ -206,7 +189,11 @@ public class NRadioButton extends NToggleButton {
         ctx.save();
         ctx.setEffect(isSelected ? innerShadow : outerShadow);
         ctx.setFill(getBackgroundColor());
-        ctx.fillOval(shadowRadiusX2, shadowRadiusX2, size - shadowRadiusX4, size - shadowRadiusX4);
+        if (isSelected) {
+            ctx.fillOval(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2);
+        } else {
+            ctx.fillOval(shadowRadiusX2, shadowRadiusX2, size - shadowRadiusX4, size - shadowRadiusX4);
+        }
         ctx.restore();
         if (isSelected) {
             ctx.save();

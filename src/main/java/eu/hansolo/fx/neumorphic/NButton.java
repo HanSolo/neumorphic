@@ -16,7 +16,7 @@
 
  package eu.hansolo.fx.neumorphic;
 
- import eu.hansolo.fx.neumorphic.tools.ButtonShape;
+ import eu.hansolo.fx.neumorphic.tools.NShape;
  import eu.hansolo.fx.neumorphic.tools.Helper;
  import javafx.beans.DefaultProperty;
  import javafx.beans.property.BooleanProperty;
@@ -57,7 +57,7 @@
      private              double                                    size;
      private              double                                    width;
      private              double                                    height;
-     private              ButtonShape                               buttonShape;
+     private              NShape                                    nShape;
      private              Node                                      graphics;
      private              Pane                                      pane;
      private              Canvas                                    canvas;
@@ -86,13 +86,12 @@
      private              InnerShadow                               innerShadow;
 
 
-
      // ******************** Constructors **************************************
      public NButton() {
          this("");
      }
      public NButton(final String text) {
-         buttonShape       = ButtonShape.RECTANGULAR;
+         nShape            = NShape.RECTANGULAR;
          graphics          = null;
          _text             = text;
          _backgroundColor  = Color.web("#e2e6e8");
@@ -295,9 +294,9 @@
      public void setHovered(final boolean hovered) { this.hover.set(hovered); }
      public BooleanProperty hoveredProperty() { return hover; }
 
-     public ButtonShape getButtonShape() { return buttonShape; }
-     public void setButtonShape(final ButtonShape buttonShape) {
-         this.buttonShape = buttonShape;
+     public NShape getNShape() { return nShape; }
+     public void setNShape(final NShape nShape) {
+         this.nShape = nShape;
          resize();
      }
 
@@ -342,8 +341,8 @@
          } else {
              double gW     = this.graphics.getLayoutBounds().getWidth();
              double gH     = this.graphics.getLayoutBounds().getHeight();
-             double w      = ButtonShape.CIRCULAR == buttonShape ? size : width;
-             double h      = ButtonShape.CIRCULAR == buttonShape ? size : getHeight();
+             double w      = NShape.CIRCULAR == nShape ? size : getWidth();
+             double h      = NShape.CIRCULAR == nShape ? size : getHeight();
              double offset = pressed.get() ? OFFSET : 0;
              switch (contentDisplay) {
                  case TOP:
@@ -374,7 +373,7 @@
          size   = width < height ? width : height;
 
          if (width > 0 && height > 0) {
-             switch (buttonShape) {
+             switch (nShape) {
                  case RECTANGULAR:
                      pane.setMinSize(width, height);
                      pane.setMaxSize(width, height);
@@ -384,7 +383,7 @@
                      canvas.setWidth(width);
                      canvas.setHeight(height);
 
-                     cornerRadius = 0.1 * size;
+                     cornerRadius = Helper.clamp(1, 10, 0.1 * size);
                      break;
                  case PILL:
                      pane.setMinSize(width, height);
@@ -395,7 +394,7 @@
                      canvas.setWidth(width);
                      canvas.setHeight(height);
 
-                     cornerRadius = size / 1.25;
+                     cornerRadius = Helper.clamp(1, size, size / 1.25);
                      break;
                  case CIRCULAR:
                      pane.setMinSize(width, height);
@@ -406,15 +405,13 @@
                      canvas.setWidth(size);
                      canvas.setHeight(size);
 
-                     cornerRadius = size;
+                     cornerRadius = size < 1 ? 1 : size;
                      break;
              }
 
-             cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
+             shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+             shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
-             shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-             shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
-             
              outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
              outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
 
@@ -433,17 +430,35 @@
          ctx.save();
          ctx.setEffect(isPressed ? innerShadow : isHover ? outerShadow : null);
          ctx.setFill(isPressed ? pressedColor : getBackgroundColor());
-         switch (buttonShape) {
+         switch (nShape) {
              case RECTANGULAR:
-             case PILL       : ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius); break;
-             case CIRCULAR   : ctx.fillOval(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2); break;
+                 if (isPressed) {
+                     ctx.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius);
+                 } else {
+                     ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+                 }
+                 break;
+             case PILL       :
+                 if (isPressed) {
+                     ctx.fillRoundRect(0, 0, width, height, size, size);
+                 } else {
+                     ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+                 }
+                 break;
+             case CIRCULAR:
+                 if (isPressed) {
+                     ctx.fillOval(0, 0, size, size);
+                 } else {
+                     ctx.fillOval(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2);
+                 }
+                 break;
          }
          ctx.restore();
          if (ContentDisplay.GRAPHIC_ONLY != contentDisplay) {
              double offset = pressed.get() ? OFFSET : 0;
              ctx.setFill(getTextColor());
              ctx.setFont(getFont());
-             switch (buttonShape) {
+             switch (nShape) {
                  case RECTANGULAR:
                  case PILL       : ctx.fillText(getText(), width * 0.5 + offset, height * 0.5 + offset, (width - shadowRadiusX2) * 0.9); break;
                  case CIRCULAR   : ctx.fillText(getText(), size * 0.5 + offset, size * 0.5 + offset, (size - shadowRadiusX2) * 0.9); break;

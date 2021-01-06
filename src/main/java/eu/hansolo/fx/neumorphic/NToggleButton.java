@@ -16,7 +16,7 @@
 
 package eu.hansolo.fx.neumorphic;
 
-import eu.hansolo.fx.neumorphic.tools.ButtonShape;
+import eu.hansolo.fx.neumorphic.tools.NShape;
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
@@ -57,7 +57,7 @@ public class NToggleButton extends Region implements Toggle {
     private              double                      size;
     private              double                      width;
     private              double                      height;
-    private              ButtonShape                 buttonShape;
+    private              NShape                      nShape;
     private              Node                        graphics;
     private              Pane                        pane;
     private              Canvas                      canvas;
@@ -93,7 +93,7 @@ public class NToggleButton extends Region implements Toggle {
         this("");
     }
     public NToggleButton(final String text) {
-        buttonShape       = ButtonShape.RECTANGULAR;
+        nShape            = NShape.RECTANGULAR;
         toggleGroup       = new ObjectPropertyBase<>(null) {
             private ToggleGroup oldToggleGroup;
             @Override protected void invalidated() {
@@ -318,11 +318,11 @@ public class NToggleButton extends Region implements Toggle {
     public void setSelected(final boolean selected) { this.selected.set(selected); }
     public BooleanProperty selectedProperty() { return selected; }
 
-    public ButtonShape getButtonShape() { return buttonShape; }
-    public void setButtonShape(final ButtonShape buttonShape) {
-        switch(buttonShape) {
-            case CIRCULAR: this.buttonShape = ButtonShape.PILL; break;
-            default      : this.buttonShape = buttonShape; break;
+    public NShape getNShape() { return nShape; }
+    public void setNShape(final NShape nShape) {
+        switch(nShape) {
+            case CIRCULAR: this.nShape = NShape.PILL; break;
+            default      : this.nShape = nShape; break;
         }
         resize();
     }
@@ -400,7 +400,7 @@ public class NToggleButton extends Region implements Toggle {
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
-            switch (buttonShape) {
+            switch (nShape) {
                 case RECTANGULAR:
                     pane.setMinSize(width, height);
                     pane.setMaxSize(width, height);
@@ -410,7 +410,7 @@ public class NToggleButton extends Region implements Toggle {
                     canvas.setWidth(width);
                     canvas.setHeight(height);
 
-                    cornerRadius = 0.1 * size;
+                    cornerRadius = Helper.clamp(1, 10, 0.1 * size);
                     break;
                 case PILL:
                     pane.setMinSize(width, height);
@@ -421,7 +421,7 @@ public class NToggleButton extends Region implements Toggle {
                     canvas.setWidth(width);
                     canvas.setHeight(height);
 
-                    cornerRadius = size / 1.25;
+                    cornerRadius = Helper.clamp(1, size, size / 1.25);
                     break;
                 case CIRCULAR:
                     pane.setMinSize(width, height);
@@ -432,14 +432,12 @@ public class NToggleButton extends Region implements Toggle {
                     canvas.setWidth(size);
                     canvas.setHeight(size);
 
-                    cornerRadius = size;
+                    cornerRadius = size < 1 ? 1 : size;
                     break;
             }
 
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
-
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
@@ -448,7 +446,7 @@ public class NToggleButton extends Region implements Toggle {
             innerShadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
 
             Color glowColor = Helper.isBright(getBackgroundColor()) ? Helper.getColorWithOpacity(getSelectedColor(), 0.25) : getSelectedColor();
-            glowRadius = Helper.clamp(4, Double.MAX_VALUE, size * 0.2);
+            glowRadius = Helper.clamp(4, 8, size * 0.2);
             glow       = new DropShadow(BlurType.TWO_PASS_BOX, glowColor, glowRadius, 0.0, 0, 0);
 
             redraw();
@@ -463,20 +461,31 @@ public class NToggleButton extends Region implements Toggle {
         ctx.save();
         ctx.setEffect(isSelected ? innerShadow : outerShadow);
         ctx.setFill((isSelected || isPressed) ? pressedColor : getBackgroundColor());
-        switch (buttonShape) {
+        switch (nShape) {
             case RECTANGULAR:
+                if (isSelected || isPressed) {
+                    ctx.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius);
+                } else {
+                    ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+                }
+                break;
             case PILL:
             default:
-                ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+                if (isSelected || isPressed) {
+                    ctx.fillRoundRect(0, 0, width, height, size, size);
+                } else {
+                    ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+                }
                 break;
         }
         ctx.restore();
+        ctx.save();
         if (ContentDisplay.GRAPHIC_ONLY != contentDisplay) {
             double offset = (selected.get() || pressed.get()) ? OFFSET : 0;
             ctx.setFill(isSelected ? getSelectedColor() : getTextColor());
             ctx.setFont(getFont());
             ctx.setEffect(isSelected ? glow : null);
-            switch (buttonShape) {
+            switch (nShape) {
                 case RECTANGULAR:
                 case PILL:
                 default:
@@ -484,5 +493,6 @@ public class NToggleButton extends Region implements Toggle {
                     break;
             }
         }
+        ctx.restore();
     }
 }

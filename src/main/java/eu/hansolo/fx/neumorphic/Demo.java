@@ -16,10 +16,13 @@
 
  package eu.hansolo.fx.neumorphic;
 
- import eu.hansolo.fx.neumorphic.tools.ButtonShape;
+ import eu.hansolo.fx.neumorphic.NSwitch.NSwitchStyle;
+ import eu.hansolo.fx.neumorphic.tools.NShape;
+ import eu.hansolo.fx.neumorphic.tools.NStyle;
  import javafx.application.Application;
  import javafx.geometry.Insets;
  import javafx.scene.control.ContentDisplay;
+ import javafx.scene.control.Label;
  import javafx.scene.control.ToggleGroup;
  import javafx.scene.layout.Background;
  import javafx.scene.layout.BackgroundFill;
@@ -69,13 +72,17 @@
      private              NCheckBox          checkBox2;
      private              NChoiceBox<String> choiceBox1;
      private              NSwitch            switch1;
+     private              NSwitch            switch2;
+     private              NContainer         container1;
+     private              NContainer         container2;
+     private              NContainer         container3;
 
 
      @Override public void init() {
          button1 = new NButton("Click");
          button1.setPrefSize(CONTROL_WIDTH, CONTROL_HEIGHT);
          button1.setFont(CONTROL_FONT);
-         button1.setButtonShape(ButtonShape.PILL);
+         button1.setNShape(NShape.PILL);
          button1.setBackgroundColor(BACKGROUND_COLOR);
          button1.setTextColor(FOREGROUND_COLOR);
          button1.armedProperty().addListener((o, ov, nv) -> { if (nv) { System.out.println("Armed"); } });
@@ -91,14 +98,14 @@
          button3 = new NButton("1");
          button3.setPrefSize(CONTROL_WIDTH, CONTROL_HEIGHT);
          button3.setFont(CONTROL_FONT);
-         button3.setButtonShape(ButtonShape.CIRCULAR);
+         button3.setNShape(NShape.CIRCULAR);
          button3.setBackgroundColor(BACKGROUND_COLOR);
          button3.setTextColor(FOREGROUND_COLOR);
 
          button4 = new NToggleButton("1");
          button4.setPrefSize(CONTROL_HEIGHT, CONTROL_HEIGHT);
          button4.setFont(CONTROL_FONT);
-         button4.setButtonShape(ButtonShape.CIRCULAR);
+         button4.setNShape(NShape.CIRCULAR);
          button4.setBackgroundColor(BACKGROUND_COLOR);
          button4.setTextColor(FOREGROUND_COLOR);
          button4.setSelectedColor(SELECTION_COLOR);
@@ -111,7 +118,7 @@
          button5 = new NButton("Click");
          button5.setPrefSize(CONTROL_WIDTH, CONTROL_HEIGHT);
          button5.setFont(CONTROL_FONT);
-         button5.setButtonShape(ButtonShape.PILL);
+         button5.setNShape(NShape.PILL);
          button5.setGraphics(icon5);
          button5.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
          button5.setBackgroundColor(BACKGROUND_COLOR);
@@ -125,7 +132,7 @@
          button6 = new NToggleButton("Click");
          button6.setPrefSize(CONTROL_WIDTH, CONTROL_HEIGHT);
          button6.setFont(CONTROL_FONT);
-         button6.setButtonShape(ButtonShape.PILL);
+         button6.setNShape(NShape.PILL);
          button6.setGraphics(icon6);
          button6.setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
          button6.setBackgroundColor(BACKGROUND_COLOR);
@@ -191,11 +198,53 @@
          switch1.setBackgroundColor(BACKGROUND_COLOR);
          switch1.setTextColor(FOREGROUND_COLOR);
          switch1.setSelectedColor(SELECTION_COLOR);
+
+         switch2 = new NSwitch();
+         switch2.setSwitchStyle(NSwitchStyle.NUMBER);
+         switch2.setNShape(NShape.RECTANGULAR);
+         switch2.setPrefSize(CONTROL_WIDTH, CONTROL_HEIGHT);
+         switch2.setBackgroundColor(BACKGROUND_COLOR);
+         switch2.setTextColor(FOREGROUND_COLOR);
+         switch2.setSelectedColor(SELECTION_COLOR);
+
+         Label label1 = new Label("One");
+         label1.setTextFill(FOREGROUND_COLOR);
+         label1.setFont(CONTROL_FONT);
+         Label label2 = new Label("Two");
+         label2.setTextFill(FOREGROUND_COLOR);
+         label2.setFont(CONTROL_FONT);
+         Label label3 = new Label("Three");
+         label3.setTextFill(FOREGROUND_COLOR);
+         label3.setFont(CONTROL_FONT);
+         HBox hBox = new HBox(10, label1, label2, label3);
+         hBox.setPadding(new Insets(10));
+
+         container1 = new NContainer();
+         container1.setBackgroundColor(BACKGROUND_COLOR);
+         container1.setNStyle(NStyle.EMBOSSED);
+         container1.setNShape(NShape.CIRCULAR);
+         container1.getNChildren().add(hBox);
+         container1.setPrefSize(300, 100);
+
+         container2 = new NContainer();
+         container2.setBackgroundColor(BACKGROUND_COLOR);
+         container2.setNStyle(NStyle.SUNKEN);
+         container2.setNShape(NShape.PILL);
+         container2.setPrefSize(200, 100);
+
+         container3 = new NContainer();
+         container3.setBackgroundColor(BACKGROUND_COLOR);
+         container3.setNStyle(NStyle.EMBOSSED);
+         container3.setNShape(NShape.PILL);
+         container3.setPrefSize(100, 100);
      }
 
      @Override public void start(Stage stage) {
-         VBox pane = new VBox(10, new HBox(10, button1, button2, button3, button4, button5, button6),
-                              new HBox(10, new VBox(10, textField1, textField2), new VBox(10, radioButton1, radioButton2), new VBox(10, checkBox1, checkBox2), new VBox(10, choiceBox1, switch1)));
+         VBox pane = new VBox(10,
+                              new HBox(10, button1, button2, button3, button4, button5, button6),
+                              new HBox(10, new VBox(10, textField1, textField2), new VBox(10, radioButton1, radioButton2), new VBox(10, checkBox1, checkBox2), new VBox(10, choiceBox1, switch1)),
+                              new HBox(10, new VBox(10, switch2)),
+                              new HBox(10, container1, container2, container3));
          pane.setPadding(new Insets(20));
          pane.setBackground(new Background(new BackgroundFill(BACKGROUND_COLOR, CornerRadii.EMPTY, Insets.EMPTY)));
 

@@ -17,6 +17,7 @@
 package eu.hansolo.fx.neumorphic;
 
 import eu.hansolo.fx.neumorphic.tools.Helper;
+import eu.hansolo.fx.neumorphic.tools.NShape;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
@@ -54,6 +55,7 @@ public class NTextField extends Region {
     private              double                size;
     private              double                width;
     private              double                height;
+    private              NShape                nShape;
     private              double                textFieldWidth;
     private              double                textFieldHeight;
     private              TextField             textField;
@@ -83,6 +85,7 @@ public class NTextField extends Region {
         this("");
     }
     public NTextField(final String text) {
+        nShape               = NShape.PILL;
         _text                = text;
         _backgroundColor     = Color.web("#e2e6e8");
         _textBackgroundColor = Helper.derive(_backgroundColor, Helper.isBright(_backgroundColor) ? 0.99 : 1.2);
@@ -242,6 +245,12 @@ public class NTextField extends Region {
 
     public TextField getEditor() { return textField; }
 
+    public NShape getNShape() { return nShape; }
+    public void setNShape(final NShape nShape) {
+        this.nShape = nShape;
+        resize();
+    }
+
     @Override public String getUserAgentStylesheet() {
         if (null == userAgentStyleSheet) { userAgentStyleSheet = getClass().getResource("ntextfield.css").toExternalForm(); }
         return userAgentStyleSheet;
@@ -262,7 +271,7 @@ public class NTextField extends Region {
 
     protected void resize() {
         width  = getWidth() - getInsets().getLeft() - getInsets().getRight();
-        height = getHeight() - getInsets().getTop() - getInsets().getBottom();
+        height = Helper.clamp(textField.getHeight(), Double.MAX_VALUE, getHeight() - getInsets().getTop() - getInsets().getBottom());
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
@@ -276,11 +285,18 @@ public class NTextField extends Region {
 
             textField.setPrefSize(width - size / 2.5, height);
 
-            cornerRadius = size / 1.25;
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
+            switch(nShape) {
+                case RECTANGULAR:
+                    cornerRadius = Helper.clamp(1, 10, 0.1 * size);
+                    break;
+                case PILL:
+                default:
+                    cornerRadius = Helper.clamp(1, size, size / 1.25);
+                    break;
+            }
 
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
@@ -294,11 +310,10 @@ public class NTextField extends Region {
 
     protected void redraw() {
         ctx.clearRect(0, 0, width, height);
-        double  shadowRadiusX2 = 2 * shadowRadius;
         ctx.save();
         ctx.setEffect(innerShadow);
         ctx.setFill(_textBackgroundColor);
-        ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius);
+        ctx.fillRoundRect(0, 0, width, height, size, size);
         ctx.restore();
     }
 }

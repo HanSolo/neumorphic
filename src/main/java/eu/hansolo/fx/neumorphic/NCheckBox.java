@@ -263,12 +263,10 @@ public class NCheckBox extends Region {
             canvas.setWidth(size);
             canvas.setHeight(size);
 
-            cornerRadius = 0.1 * size;
+            cornerRadius = Helper.clamp(1, 10, 0.1 * size);
 
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
-
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
@@ -277,7 +275,7 @@ public class NCheckBox extends Region {
             innerShadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
 
             Color glowColor = Helper.isBright(getBackgroundColor()) ? Helper.getColorWithOpacity(getSelectedColor(), 0.25) : getSelectedColor();
-            glowRadius = Helper.clamp(4, Double.MAX_VALUE, size * 0.2);
+            glowRadius = Helper.clamp(4, 8, size * 0.2);
             glow = new DropShadow(BlurType.TWO_PASS_BOX, glowColor, glowRadius, 0.0, 0, 0);
 
             redraw();
@@ -291,7 +289,11 @@ public class NCheckBox extends Region {
         ctx.save();
         ctx.setEffect(isSelected ? innerShadow : outerShadow);
         ctx.setFill(getBackgroundColor());
-        ctx.fillRoundRect(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2, cornerRadius, cornerRadius);
+        if (isSelected) {
+            ctx.fillRoundRect(0, 0, size, size, cornerRadius, cornerRadius);
+        } else {
+            ctx.fillRoundRect(shadowRadius, shadowRadius, size - shadowRadiusX2, size - shadowRadiusX2, cornerRadius, cornerRadius);
+        }
         ctx.restore();
         if (isSelected) {
             double checkMarkSize = size * 0.5;

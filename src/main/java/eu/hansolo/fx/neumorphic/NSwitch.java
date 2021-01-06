@@ -16,16 +16,13 @@
 
 package eu.hansolo.fx.neumorphic;
 
-import eu.hansolo.fx.neumorphic.tools.ButtonShape;
+import eu.hansolo.fx.neumorphic.tools.NShape;
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
-import javafx.beans.property.ReadOnlyBooleanProperty;
-import javafx.beans.property.StringProperty;
-import javafx.beans.property.StringPropertyBase;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -34,7 +31,6 @@ import javafx.scene.Node;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.ContentDisplay;
-import javafx.scene.control.Control;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.effect.InnerShadow;
@@ -48,6 +44,7 @@ import javafx.scene.text.TextAlignment;
 
 @DefaultProperty("children")
 public class NSwitch extends Region {
+    public enum NSwitchStyle { NUMBER, TEXT }
     private static final double                                    PREFERRED_WIDTH  = 100;
     private static final double                                    PREFERRED_HEIGHT = 24;
     private static final double                                    MINIMUM_WIDTH    = 10;
@@ -58,7 +55,7 @@ public class NSwitch extends Region {
     private              double                                    size;
     private              double                                    width;
     private              double                                    height;
-    private              ButtonShape                               buttonShape;
+    private              NShape                                    nShape;
     private              Pane                                      pane;
     private              Canvas                                    canvas;
     private              GraphicsContext                           ctx;
@@ -75,6 +72,7 @@ public class NSwitch extends Region {
     private              ContentDisplay                            contentDisplay;
     private              ObjectProperty<EventHandler<ActionEvent>> onAction;
     private              BooleanProperty                           on;
+    private              NSwitchStyle                              switchStyle;
     private              double                                    cornerRadius;
     private              double                                    shadowRadius;
     private              double                                    shadowOffset;
@@ -84,10 +82,9 @@ public class NSwitch extends Region {
     private              DropShadow                                glow;
 
 
-
     // ******************** Constructors **************************************
     public NSwitch() {
-        buttonShape       = ButtonShape.PILL;
+        nShape = NShape.PILL;
         _backgroundColor  = Color.web("#e2e6e8");
         _textColor        = Color.web("#6c737c");
         _selectedColor    = Color.web("#236dee");
@@ -108,6 +105,7 @@ public class NSwitch extends Region {
             @Override public Object getBean() { return NSwitch.this; }
             @Override public String getName() { return "on"; }
         };
+        switchStyle       = NSwitchStyle.TEXT;
         cornerRadius      = 5;
         shadowRadius      = 6;
         shadowOffset      = 2;
@@ -258,15 +256,21 @@ public class NSwitch extends Region {
         resize();
     }
 
-    public ButtonShape getButtonShape() { return buttonShape; }
-    public void setButtonShape(final ButtonShape buttonShape) {
-        this.buttonShape = buttonShape;
+    public NShape getNShape() { return nShape; }
+    public void setNShape(final NShape nShape) {
+        this.nShape = nShape;
         resize();
     }
 
     public boolean isOn() { return on.get(); }
     public void setOn(final boolean on) { this.on.set(on); }
     public BooleanProperty onProperty() { return on; }
+
+    public NSwitchStyle getSwitchStyle() { return switchStyle; }
+    public void setSwitchStyle(final NSwitchStyle switchStyle) {
+        this.switchStyle = switchStyle;
+        redraw();
+    }
 
     public EventHandler<ActionEvent> getOnAction() { return onAction.get(); }
     public void setOnAction(final EventHandler<ActionEvent> onAction) { this.onAction.set(onAction); }
@@ -293,7 +297,7 @@ public class NSwitch extends Region {
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
-            switch (buttonShape) {
+            switch (nShape) {
                 case RECTANGULAR:
                     pane.setMinSize(width, height);
                     pane.setMaxSize(width, height);
@@ -303,7 +307,7 @@ public class NSwitch extends Region {
                     canvas.setWidth(width);
                     canvas.setHeight(height);
 
-                    cornerRadius = 0.1 * size;
+                    cornerRadius = Helper.clamp(1, 10, 0.1 * size);
                     break;
                 case PILL:
                     pane.setMinSize(width, height);
@@ -314,7 +318,7 @@ public class NSwitch extends Region {
                     canvas.setWidth(width);
                     canvas.setHeight(height);
 
-                    cornerRadius = size / 1.25;
+                    cornerRadius = Helper.clamp(1, size, size / 1.25);
                     break;
                 case CIRCULAR:
                     pane.setMinSize(width, height);
@@ -325,14 +329,12 @@ public class NSwitch extends Region {
                     canvas.setWidth(size);
                     canvas.setHeight(size);
 
-                    cornerRadius = size;
+                    cornerRadius = size < 1 ? 1 : size;
                     break;
             }
 
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
-
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
@@ -341,7 +343,7 @@ public class NSwitch extends Region {
             innerShadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
 
             Color glowColor = Helper.isBright(getBackgroundColor()) ? Helper.getColorWithOpacity(getSelectedColor(), 0.25) : getSelectedColor();
-            glowRadius = Helper.clamp(4, Double.MAX_VALUE, size * 0.2);
+            glowRadius = Helper.clamp(4, 8, size * 0.2);
             glow       = new DropShadow(BlurType.TWO_PASS_BOX, glowColor, glowRadius, 0.0, 0, 0);
 
             redraw();
@@ -354,7 +356,7 @@ public class NSwitch extends Region {
         ctx.save();
         ctx.setEffect(outerShadow);
         ctx.setFill(getBackgroundColor());
-        switch (buttonShape) {
+        switch (nShape) {
             case RECTANGULAR:
             case PILL       :
             default         : ctx.fillRoundRect(shadowRadius, shadowRadius, width - shadowRadiusX2, height - shadowRadiusX2, cornerRadius, cornerRadius); break;
@@ -362,7 +364,7 @@ public class NSwitch extends Region {
         ctx.restore();
 
         // Draw on / off
-        double  innerButtonWidth = (width / 2) - shadowOffset;
+        double  innerButtonWidth = (width / 2) - shadowRadius;
         double  innerOffset      = shadowRadius + 2;
         double  innerRadius      = cornerRadius * 0.8;
         boolean isOn             = isOn();
@@ -372,13 +374,13 @@ public class NSwitch extends Region {
         shadow.setInput(new InnerShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset / 2, shadowOffset / 2));
         ctx.setEffect(shadow);
         if (isOn) {
-            switch (buttonShape) {
+            switch (nShape) {
                 case RECTANGULAR:
                 case PILL       :
                 default         : ctx.fillRoundRect(innerOffset, innerOffset, innerButtonWidth, height - shadowRadiusX2 - 4, innerRadius, innerRadius);
             }
         } else {
-            switch (buttonShape) {
+            switch (nShape) {
                 case RECTANGULAR:
                 case PILL       :
                 default         : ctx.fillRoundRect(width - innerOffset - innerButtonWidth, innerOffset, innerButtonWidth, height - shadowRadiusX2 - 4, innerRadius, innerRadius);
@@ -389,18 +391,18 @@ public class NSwitch extends Region {
         double offset;
         ctx.setFill(getTextColor());
         ctx.setFont(getFont());
-        switch (buttonShape) {
+        switch (nShape) {
             case RECTANGULAR:
             case PILL:
             default:
                 offset = isOn ? OFFSET : 0;
                 ctx.setFill(isOn ? getSelectedColor() : getTextColor());
                 ctx.setEffect(isOn ? glow : null);
-                ctx.fillText("ON", innerOffset + innerButtonWidth * 0.5 + offset, height * 0.5 + offset, innerButtonWidth);
+                ctx.fillText(NSwitchStyle.TEXT == switchStyle ? "ON" : "1", innerOffset + innerButtonWidth * 0.5 + offset, height * 0.5 + offset, innerButtonWidth);
                 offset = isOn ? 0 : OFFSET;
                 ctx.setEffect(isOn ? null : glow);
                 ctx.setFill(isOn ? getTextColor() : getSelectedColor());
-                ctx.fillText("OFF", width - innerOffset - innerButtonWidth * 0.5 + offset, height * 0.5 + offset, innerButtonWidth);
+                ctx.fillText(NSwitchStyle.TEXT == switchStyle ? "OFF" : "0", width - innerOffset - innerButtonWidth * 0.5 + offset, height * 0.5 + offset, innerButtonWidth);
                 break;
         }
         ctx.restore();

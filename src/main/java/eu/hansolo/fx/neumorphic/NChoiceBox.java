@@ -17,6 +17,7 @@
 package eu.hansolo.fx.neumorphic;
 
 import eu.hansolo.fx.neumorphic.tools.Helper;
+import eu.hansolo.fx.neumorphic.tools.NShape;
 import javafx.beans.DefaultProperty;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -56,6 +57,7 @@ public class NChoiceBox<T> extends Region {
     private              double                size;
     private              double                width;
     private              double                height;
+    private              NShape                nShape;
     private              double                choiceBoxWidth;
     private              double                choiceBoxHeight;
     private              ChoiceBox<T>          choiceBox;
@@ -86,6 +88,7 @@ public class NChoiceBox<T> extends Region {
         this(new ArrayList<>());
     }
     public NChoiceBox(final List<T> items) {
+        nShape               = NShape.PILL;
         this.items           = items;
         _backgroundColor     = Color.web("#e2e6e8");
         _textColor           = Color.web("#6c737c");
@@ -266,7 +269,13 @@ public class NChoiceBox<T> extends Region {
         resize();
     }
 
-    public ChoiceBox<T> getEditor() { return choiceBox; }
+    public ChoiceBox<T> getChoiceBox() { return choiceBox; }
+
+    public NShape getNShape() { return nShape; }
+    public void setNShape(final NShape nShape) {
+        this.nShape = nShape;
+        resize();
+    }
 
     @Override public String getUserAgentStylesheet() {
         if (null == userAgentStyleSheet) { userAgentStyleSheet = getClass().getResource("nchoicebox.css").toExternalForm(); }
@@ -288,7 +297,7 @@ public class NChoiceBox<T> extends Region {
 
     protected void resize() {
         width  = getWidth() - getInsets().getLeft() - getInsets().getRight();
-        height = getHeight() - getInsets().getTop() - getInsets().getBottom();
+        height = Helper.clamp(choiceBox.getHeight(), Double.MAX_VALUE, getHeight() - getInsets().getTop() - getInsets().getBottom());
         size   = width < height ? width : height;
 
         if (width > 0 && height > 0) {
@@ -302,11 +311,18 @@ public class NChoiceBox<T> extends Region {
 
             choiceBox.setPrefSize(width - size / 2.5, height);
 
-            cornerRadius = size / 1.25;
-            cornerRadius = cornerRadius < 1 ? 1 : cornerRadius;
+            switch(nShape) {
+                case RECTANGULAR:
+                    cornerRadius = Helper.clamp(1, 10, 0.1 * size);
+                    break;
+                case PILL:
+                default:
+                    cornerRadius = Helper.clamp(1, size, size / 1.25);
+                    break;
+            }
 
-            shadowRadius = Helper.clamp(2, Double.MAX_VALUE, 0.12 * size);
-            shadowOffset = Helper.clamp(2, Double.MAX_VALUE, 0.04 * size);
+            shadowRadius = Helper.clamp(2, 6, 0.12 * size);
+            shadowOffset = Helper.clamp(2, 6, 0.04 * size);
 
             outerShadow = new DropShadow(BlurType.TWO_PASS_BOX, brightShadowColor, shadowRadius, 0.5, -shadowOffset, -shadowOffset);
             outerShadow.setInput(new DropShadow(BlurType.TWO_PASS_BOX, darkShadowColor, shadowRadius, 0.5, shadowOffset, shadowOffset));
