@@ -20,6 +20,8 @@
  import eu.hansolo.fx.neumorphic.tools.NShape;
  import eu.hansolo.fx.neumorphic.tools.NStyle;
  import javafx.application.Application;
+ import javafx.event.Event;
+ import javafx.event.EventType;
  import javafx.geometry.Insets;
  import javafx.scene.control.ContentDisplay;
  import javafx.scene.control.Label;
@@ -198,6 +200,13 @@
          switch1.setBackgroundColor(BACKGROUND_COLOR);
          switch1.setTextColor(FOREGROUND_COLOR);
          switch1.setSelectedColor(SELECTION_COLOR);
+         switch1.setOnSwitch(e -> {
+             EventType<? extends Event> type = e.getEventType();
+             switch(type.getName()) {
+                 case "ON" : System.out.println("ON"); break;
+                 case "OFF": System.out.println("OFF"); break;
+             }
+         });
 
          switch2 = new NSwitch();
          switch2.setSwitchStyle(NSwitchStyle.NUMBER);
@@ -222,7 +231,7 @@
          container1 = new NContainer();
          container1.setBackgroundColor(BACKGROUND_COLOR);
          container1.setNStyle(NStyle.EMBOSSED);
-         container1.setNShape(NShape.CIRCULAR);
+         container1.setNShape(NShape.RECTANGULAR);
          container1.getNChildren().add(hBox);
          container1.setPrefSize(300, 100);
 

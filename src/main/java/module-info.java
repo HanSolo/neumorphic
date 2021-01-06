@@ -13,5 +13,6 @@ module eu.hansolo.fx.neumorphic {
     requires org.kordamp.ikonli.antdesignicons;
 
     exports eu.hansolo.fx.neumorphic;
+    exports eu.hansolo.fx.neumorphic.event;
     exports eu.hansolo.fx.neumorphic.tools;
 }

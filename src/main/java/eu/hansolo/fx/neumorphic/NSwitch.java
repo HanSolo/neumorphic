@@ -16,6 +16,8 @@
 
 package eu.hansolo.fx.neumorphic;
 
+import eu.hansolo.fx.neumorphic.event.NEvent;
+import eu.hansolo.fx.neumorphic.event.NSwitchEvent;
 import eu.hansolo.fx.neumorphic.tools.NShape;
 import eu.hansolo.fx.neumorphic.tools.Helper;
 import javafx.beans.DefaultProperty;
@@ -24,7 +26,6 @@ import javafx.beans.property.BooleanPropertyBase;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ObjectPropertyBase;
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
@@ -45,41 +46,42 @@ import javafx.scene.text.TextAlignment;
 @DefaultProperty("children")
 public class NSwitch extends Region {
     public enum NSwitchStyle { NUMBER, TEXT }
-    private static final double                                    PREFERRED_WIDTH  = 100;
-    private static final double                                    PREFERRED_HEIGHT = 24;
-    private static final double                                    MINIMUM_WIDTH    = 10;
-    private static final double                                    MINIMUM_HEIGHT   = 10;
-    private static final double                                    MAXIMUM_WIDTH    = 1024;
-    private static final double                                    MAXIMUM_HEIGHT   = 1024;
-    private static final double                                    OFFSET           = 0.5;
-    private              double                                    size;
-    private              double                                    width;
-    private              double                                    height;
-    private              NShape                                    nShape;
-    private              Pane                                      pane;
-    private              Canvas                                    canvas;
-    private              GraphicsContext                           ctx;
-    private              Color                                     _backgroundColor;
-    private              ObjectProperty<Color>                     backgroundColor;
-    private              Color                                     _textColor;
-    private              ObjectProperty<Color>                     textColor;
-    private              Color                                     _selectedColor;
-    private              ObjectProperty<Color>                     selectedColor;
-    private              Font                                      _font;
-    private              ObjectProperty<Font>                      font;
-    private              Color                                     brightShadowColor;
-    private              Color                                     darkShadowColor;
-    private              ContentDisplay                            contentDisplay;
-    private              ObjectProperty<EventHandler<ActionEvent>> onAction;
-    private              BooleanProperty                           on;
-    private              NSwitchStyle                              switchStyle;
-    private              double                                    cornerRadius;
-    private              double                                    shadowRadius;
-    private              double                                    shadowOffset;
-    private              double                                    glowRadius;
-    private              DropShadow                                outerShadow;
-    private              InnerShadow                               innerShadow;
-    private              DropShadow                                glow;
+
+    private static final double                                     PREFERRED_WIDTH  = 100;
+    private static final double                                     PREFERRED_HEIGHT = 24;
+    private static final double                                     MINIMUM_WIDTH    = 10;
+    private static final double                                     MINIMUM_HEIGHT   = 10;
+    private static final double                                     MAXIMUM_WIDTH    = 1024;
+    private static final double                                     MAXIMUM_HEIGHT   = 1024;
+    private static final double                                     OFFSET           = 0.5;
+    private              double                                     size;
+    private              double                                     width;
+    private              double                                     height;
+    private              NShape                                     nShape;
+    private              Pane                                       pane;
+    private              Canvas                                     canvas;
+    private              GraphicsContext                            ctx;
+    private              Color                                      _backgroundColor;
+    private              ObjectProperty<Color>                      backgroundColor;
+    private              Color                                      _textColor;
+    private              ObjectProperty<Color>                      textColor;
+    private              Color                                      _selectedColor;
+    private              ObjectProperty<Color>                      selectedColor;
+    private              Font                                       _font;
+    private              ObjectProperty<Font>                       font;
+    private              Color                                      brightShadowColor;
+    private              Color                                      darkShadowColor;
+    private              ContentDisplay                             contentDisplay;
+    private              ObjectProperty<EventHandler<NEvent>>       onSwitch;
+    private              BooleanProperty                            on;
+    private              NSwitchStyle                               switchStyle;
+    private              double                                     cornerRadius;
+    private              double                                     shadowRadius;
+    private              double                                     shadowOffset;
+    private              double                                     glowRadius;
+    private              DropShadow                                 outerShadow;
+    private              InnerShadow                                innerShadow;
+    private              DropShadow                                 glow;
 
 
     // ******************** Constructors **************************************
@@ -92,14 +94,19 @@ public class NSwitch extends Region {
         brightShadowColor = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, 1.1), 0.5);
         darkShadowColor   = Helper.getColorWithOpacity(Helper.derive(_backgroundColor, 0.9), 0.5);
         contentDisplay    = ContentDisplay.LEFT;
-        onAction          = new ObjectPropertyBase<>() {
-            @Override protected void invalidated() { setEventHandler(ActionEvent.ACTION, get()); }
+        onSwitch          = new ObjectPropertyBase<>() {
+            @Override protected void invalidated() {
+                setEventHandler(NSwitchEvent.ON, get());
+                setEventHandler(NSwitchEvent.OFF, get());
+            }
             @Override public Object getBean() { return NSwitch.this; }
-            @Override public String getName() { return "onAction"; }
+            @Override public String getName() { return "onSwitch"; }
         };
         on                = new BooleanPropertyBase(false) {
             @Override protected void invalidated() {
-                fire();
+                if (!isDisabled()) {
+                    fireEvent(get() ? new NSwitchEvent(NSwitchEvent.ON) : new NSwitchEvent(NSwitchEvent.OFF));
+                }
                 layoutChildren();
             }
             @Override public Object getBean() { return NSwitch.this; }
@@ -272,13 +279,9 @@ public class NSwitch extends Region {
         redraw();
     }
 
-    public EventHandler<ActionEvent> getOnAction() { return onAction.get(); }
-    public void setOnAction(final EventHandler<ActionEvent> onAction) { this.onAction.set(onAction); }
-    public ObjectProperty<EventHandler<ActionEvent>> onActionProperty() { return onAction; }
-
-    public void fire() {
-        if (!isDisabled()) { fireEvent(new ActionEvent()); }
-    }
+    public EventHandler<NEvent> getOnSwitch() { return onSwitch.get(); }
+    public void setOnSwitch(final EventHandler<NEvent> onSwitch) { this.onSwitch.set(onSwitch); }
+    public ObjectProperty<EventHandler<NEvent>> onSwitchProperty() { return onSwitch; }
 
     private void checkState(final MouseEvent e) {
         setOn(e.getX() < width * 0.5);
